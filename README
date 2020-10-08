@@ -1,0 +1,7 @@
+Interactive Brokers Trading Bot
+
+1. We get historical data of a desired stock
+2. Plot the day, 1h, 5m candles on the screen
+3. Find support and resistance lines, draw them on the graphs
+4. Determine entry point for our trades
+5. Enter trade and set profit target and stop loss

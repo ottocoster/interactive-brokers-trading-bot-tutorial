@@ -1,0 +1,11 @@
+<p>
+  market-data-graphs works!
+</p>
+
+<ng-container *ngIf="webSocketMessage$ | async as webSocketMessage">
+  <p>{{ webSocketMessage }}</p>
+</ng-container>
+
+<div style="width:1000px">
+  <canvas id="chart"></canvas>
+</div>
