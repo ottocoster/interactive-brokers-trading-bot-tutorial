@@ -5,7 +5,8 @@ declare const Chart;
 declare const luxon;
 
 export interface CandlestickData {
-    t: string;
+    reqId: number;
+    t: number;
     o: number;
     h: number;
     l: number;
@@ -21,7 +22,7 @@ export class MarketDataGraphsComponent implements OnInit {
   webSocketConnection: WebSocket;
   webSocketMessage$ = new Subject();
   historicData: CandlestickData[];
-  messageArray = [];
+  messageArray: CandlestickData[] = [];
 
   constructor() { }
 
@@ -29,14 +30,42 @@ export class MarketDataGraphsComponent implements OnInit {
     this.startWebSocketClient();
 
     this.webSocketMessage$.subscribe((message: string) => {
-      this.messageArray.push(JSON.parse(message));
-    });
+      const parsedMessage: CandlestickData = JSON.parse(message);
+      this.messageArray.push(parsedMessage);
 
-    setTimeout(() => {
-      this.messageArray.pop();
-      console.log('messageArray:', this.messageArray);
-      this.renderGraph(this.messageArray);
-    }, 10000);
+      // Check when data for a certain graph has finished, if so, render the graph
+      if (parsedMessage.t === null) {
+        if (parsedMessage.reqId === 6000) {
+          this.renderGraph(
+            this.messageArray
+              .filter(candlestick => candlestick.t > 0)
+              .filter(candlestick => candlestick.reqId === 6000), 'chart3M1D');
+        }
+
+        if (parsedMessage.reqId === 6001) {
+          this.renderGraph(
+            this.messageArray
+            .filter(candlestick => candlestick.t > 0)
+            .filter(candlestick => candlestick.reqId === 6001), 'chart1W1H');
+        }
+
+        if (parsedMessage.reqId === 6002) {
+          this.renderGraph(
+            this.messageArray
+              .filter(candlestick => candlestick.t > 0)
+              .filter(candlestick => candlestick.reqId === 6002), 'chart1H1m');
+        }
+      }
+
+      // Live 5 sec bar graph
+      if (parsedMessage.reqId === 6003) {
+        this.renderGraph(
+          this.messageArray
+            .filter(candlestick => candlestick.t > 0)
+            .filter(candlestick => candlestick.reqId === 6003), 'chart5s');
+      }
+
+    });
   }
 
   startWebSocketClient() {
@@ -58,19 +87,19 @@ export class MarketDataGraphsComponent implements OnInit {
     };
   }
 
-  renderGraph(data: CandlestickData[]): void {
+  renderGraph(data: CandlestickData[], element: string): void {
     const barCount = 60;
     const initialDateStr = '01 Apr 2017 00:00 Z';
 
-    const ctx = document.getElementById('chart').getContext('2d');
-    ctx.canvas.width = 1000;
-    ctx.canvas.height = 250;
+    const ctx = (document.getElementById(element) as any).getContext('2d');
+    ctx.canvas.width = 600;
+    ctx.canvas.height = 400;
 
     const chart = new Chart(ctx, {
       type: 'candlestick',
       data: {
         datasets: [{
-          label: 'CHRT - Chart.js Corporation',
+          label: element,
           data: data
         }]
       }
