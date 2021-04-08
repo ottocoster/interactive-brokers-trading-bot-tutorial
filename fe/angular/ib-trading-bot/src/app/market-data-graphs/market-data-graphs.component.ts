@@ -36,33 +36,43 @@ export class MarketDataGraphsComponent implements OnInit {
       // Check when data for a certain graph has finished, if so, render the graph
       if (parsedMessage.t === null) {
         if (parsedMessage.reqId === 6000) {
+          const lines = this.findSupportAndResistance(this.messageArray, 6000);
+
           this.renderGraph(
             this.messageArray
               .filter(candlestick => candlestick.t > 0)
-              .filter(candlestick => candlestick.reqId === 6000), 'chart3M1D');
+              .filter(candlestick => candlestick.reqId === 6000), 'chart3M1D', lines.supportLines);
+
+              console.log(lines);
         }
 
         if (parsedMessage.reqId === 6001) {
+          const lines = this.findSupportAndResistance(this.messageArray, 6001);
+
           this.renderGraph(
             this.messageArray
             .filter(candlestick => candlestick.t > 0)
-            .filter(candlestick => candlestick.reqId === 6001), 'chart1W1H');
+            .filter(candlestick => candlestick.reqId === 6001), 'chart1W1H', lines.supportLines);
         }
 
         if (parsedMessage.reqId === 6002) {
+          const lines = this.findSupportAndResistance(this.messageArray, 6002);
+
           this.renderGraph(
             this.messageArray
               .filter(candlestick => candlestick.t > 0)
-              .filter(candlestick => candlestick.reqId === 6002), 'chart1H1m');
+              .filter(candlestick => candlestick.reqId === 6002), 'chart1H1m', lines.supportLines);
         }
       }
 
       // Live 5 sec bar graph
       if (parsedMessage.reqId === 6003) {
+        const lines = this.findSupportAndResistance(this.messageArray, 6003);
+
         this.renderGraph(
           this.messageArray
             .filter(candlestick => candlestick.t > 0)
-            .filter(candlestick => candlestick.reqId === 6003), 'chart5s');
+            .filter(candlestick => candlestick.reqId === 6003), 'chart5s', lines.supportLines);
       }
 
     });
@@ -82,27 +92,74 @@ export class MarketDataGraphsComponent implements OnInit {
 
     this.webSocketConnection.onmessage = (messageEvent: MessageEvent) => {
       const lastMessage = (messageEvent.data as string);
-      console.log(lastMessage);
       this.webSocketMessage$.next(lastMessage);
     };
   }
 
-  renderGraph(data: CandlestickData[], element: string): void {
-    const barCount = 60;
-    const initialDateStr = '01 Apr 2017 00:00 Z';
-
+  renderGraph(data: CandlestickData[], element: string, supportLines: CandlestickData[]): void {
     const ctx = (document.getElementById(element) as any).getContext('2d');
     ctx.canvas.width = 600;
     ctx.canvas.height = 400;
 
+    const datasets: any = [{
+      label: element,
+      data: data
+    }];
+
+    supportLines.forEach(supportLine =>
+      datasets.push({
+        type: 'line',
+        label: `Support line`,
+        borderColor: 'blue',
+        borderWidth: 1,
+        fill: false,
+        data: [{
+          x: supportLine.t,
+          y: supportLine.l,
+        },
+        {
+          x: Date.now(),
+          y: supportLine.l,
+        }]
+      })
+    )
+
     const chart = new Chart(ctx, {
       type: 'candlestick',
       data: {
-        datasets: [{
-          label: element,
-          data: data
-        }]
+        datasets: datasets
       }
     });
   }
+
+  findSupportAndResistance(messageArray: CandlestickData[], reqId: number) {
+    const supportLines = messageArray
+        .filter(candlestick => candlestick.t > 0)
+        .filter(candlestick => candlestick.reqId === reqId)
+        .filter((value, index, array) => {
+          if (index > 0
+            && index < (array.length - 2)
+            && array[index - 1].l >= value.l
+            && array[index + 1].l > value.l) {
+            return true;
+          }
+        }).sort((a, b) => a.l - b.l);
+
+    const resistanceLines = messageArray
+        .filter(candlestick => candlestick.t > 0)
+        .filter(candlestick => candlestick.reqId === reqId)
+        .filter((value, index, array) => {
+          if (index > 0
+            && index < (array.length - 2)
+            && array[index - 1].h <= value.h
+            && array[index + 1].h < value.h) {
+            return true;
+          }
+        }).sort((a, b) => a.l - b.l);
+
+        return {
+          supportLines,
+          resistanceLines
+        }
+  }  
 }
