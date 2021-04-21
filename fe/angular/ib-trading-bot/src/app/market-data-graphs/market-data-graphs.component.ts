@@ -157,6 +157,17 @@ export class MarketDataGraphsComponent implements OnInit {
           }
         }).sort((a, b) => a.l - b.l);
 
+        const averageBarHeight = messageArray
+        .filter(candlestick => candlestick.t > 0)
+        .filter(candlestick => candlestick.reqId === reqId)
+        .map(candlestick => candlestick.h - candlestick.l)
+        .reduce((previous, current) => previous + current)
+        / messageArray
+          .filter(candlestick => candlestick.t > 0)
+          .filter(candlestick => candlestick.reqId === reqId).length;
+
+        
+
         return {
           supportLines,
           resistanceLines
