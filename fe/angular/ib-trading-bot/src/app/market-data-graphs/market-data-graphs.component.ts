@@ -41,7 +41,7 @@ export class MarketDataGraphsComponent implements OnInit {
           this.renderGraph(
             this.messageArray
               .filter(candlestick => candlestick.t > 0)
-              .filter(candlestick => candlestick.reqId === 6000), 'chart3M1D', lines.supportLines);
+              .filter(candlestick => candlestick.reqId === 6000), 'chart3M1D', lines.supportLines, lines.resistanceLines);
 
               console.log(lines);
         }
@@ -52,7 +52,7 @@ export class MarketDataGraphsComponent implements OnInit {
           this.renderGraph(
             this.messageArray
             .filter(candlestick => candlestick.t > 0)
-            .filter(candlestick => candlestick.reqId === 6001), 'chart1W1H', lines.supportLines);
+            .filter(candlestick => candlestick.reqId === 6001), 'chart1W1H', lines.supportLines, lines.resistanceLines);
         }
 
         if (parsedMessage.reqId === 6002) {
@@ -61,7 +61,7 @@ export class MarketDataGraphsComponent implements OnInit {
           this.renderGraph(
             this.messageArray
               .filter(candlestick => candlestick.t > 0)
-              .filter(candlestick => candlestick.reqId === 6002), 'chart1H1m', lines.supportLines);
+              .filter(candlestick => candlestick.reqId === 6002), 'chart1H1m', lines.supportLines, lines.resistanceLines);
         }
       }
 
@@ -72,7 +72,7 @@ export class MarketDataGraphsComponent implements OnInit {
         this.renderGraph(
           this.messageArray
             .filter(candlestick => candlestick.t > 0)
-            .filter(candlestick => candlestick.reqId === 6003), 'chart5s', lines.supportLines);
+            .filter(candlestick => candlestick.reqId === 6003), 'chart5s', lines.supportLines, lines.resistanceLines);
       }
 
     });
@@ -96,7 +96,7 @@ export class MarketDataGraphsComponent implements OnInit {
     };
   }
 
-  renderGraph(data: CandlestickData[], element: string, supportLines: CandlestickData[]): void {
+  renderGraph(data: CandlestickData[], element: string, supportLines: CandlestickData[], resistanceLines: CandlestickData[]): void {
     const ctx = (document.getElementById(element) as any).getContext('2d');
     ctx.canvas.width = 600;
     ctx.canvas.height = 400;
@@ -120,6 +120,24 @@ export class MarketDataGraphsComponent implements OnInit {
         {
           x: Date.now(),
           y: supportLine.l,
+        }]
+      })
+    )
+
+    resistanceLines.forEach(resistanceLine =>
+      datasets.push({
+        type: 'line',
+        label: `Resistance line`,
+        borderColor: 'red',
+        borderWidth: 1,
+        fill: false,
+        data: [{
+          x: resistanceLine.t,
+          y: resistanceLine.h,
+        },
+        {
+          x: Date.now(),
+          y: resistanceLine.h,
         }]
       })
     )
@@ -155,7 +173,7 @@ export class MarketDataGraphsComponent implements OnInit {
             && array[index + 1].h < value.h) {
             return true;
           }
-        }).sort((a, b) => a.l - b.l);
+        }).sort((a, b) => b.h - a.h);
 
         const averageBarHeight = messageArray
         .filter(candlestick => candlestick.t > 0)
@@ -166,11 +184,45 @@ export class MarketDataGraphsComponent implements OnInit {
           .filter(candlestick => candlestick.t > 0)
           .filter(candlestick => candlestick.reqId === reqId).length;
 
-        
+        const uniqueSupportLines: CandlestickData[] = [];
+
+        supportLines.forEach((supportLine, index, array) => {
+          if (index === 0) {
+            uniqueSupportLines.push(supportLine);
+          }
+  
+          if (index > 0) {
+            const isUnique = uniqueSupportLines.every(uniqueSupportLine => {
+              return Math.abs(supportLine.l - uniqueSupportLine.l) > 2 * averageBarHeight;
+            });
+  
+            if (isUnique) {
+              uniqueSupportLines.push(supportLine);
+            }
+          }
+        });
+
+        const uniqueResistanceLines: CandlestickData[] = [];
+
+        resistanceLines.forEach((resistanceLine, index, array) => {
+          if (index === 0) {
+            uniqueResistanceLines.push(resistanceLine);
+          }
+  
+          if (index > 0) {
+            const isUnique = uniqueResistanceLines.every(uniqueResistanceLine => {
+              return Math.abs(resistanceLine.h - uniqueResistanceLine.h) > 2 * averageBarHeight;
+            });
+  
+            if (isUnique) {
+              uniqueResistanceLines.push(resistanceLine);
+            }
+          }
+        });
 
         return {
-          supportLines,
-          resistanceLines
+          supportLines: uniqueSupportLines,
+          resistanceLines: uniqueResistanceLines
         }
   }  
 }
