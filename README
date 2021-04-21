@@ -1,4 +1,11 @@
-Interactive Brokers Trading Bot
+# Interactive Brokers Trading Bot
+
+In this tutorial series, we are going to build an automated trading bot that trades stocks on the US stock market for us. We are using Interactive Brokers and its API, Node.js, Angular, TypeScript and rxjs.
+
+Checkout the channel on YouTube here:
+https://www.youtube.com/channel/UCk0KKThPP2GxhyOY8twoWOQ
+
+The plan:
 
 1. We get historical data of a desired stock
 2. Plot the day, 1h, 5m candles on the screen
