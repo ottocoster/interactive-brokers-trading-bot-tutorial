@@ -23,6 +23,7 @@ export class MarketDataGraphsComponent implements OnInit {
   webSocketMessage$ = new Subject();
   historicData: CandlestickData[];
   messageArray: CandlestickData[] = [];
+  entryPoint: CandlestickData;
 
   constructor() { }
 
@@ -69,13 +70,25 @@ export class MarketDataGraphsComponent implements OnInit {
       if (parsedMessage.reqId === 6003) {
         const lines = this.findSupportAndResistance(this.messageArray, 6003);
 
+        this.entryPoint = this.findEntryPoint(6003, this.messageArray, lines);
+
         this.renderGraph(
           this.messageArray
             .filter(candlestick => candlestick.t > 0)
-            .filter(candlestick => candlestick.reqId === 6003), 'chart5s', lines.supportLines, lines.resistanceLines);
+            .filter(candlestick => candlestick.reqId === 6003), 'chart5s', lines.supportLines, lines.resistanceLines, this.entryPoint);
       }
-
     });
+  }
+
+  findEntryPoint(reqId: number, messageArray: CandlestickData[], supportAndResistanceLines: {supportLines: CandlestickData[], resistanceLines: CandlestickData[]}): CandlestickData {
+    // Find closest support line
+    const closestSupportLine = supportAndResistanceLines.supportLines
+    .sort((a, b) => b.l - a.l)
+    .find(supportLine => {
+      return messageArray[messageArray.length - 1].l > supportLine.l;
+    });
+
+    return closestSupportLine;
   }
 
   startWebSocketClient() {
@@ -96,7 +109,7 @@ export class MarketDataGraphsComponent implements OnInit {
     };
   }
 
-  renderGraph(data: CandlestickData[], element: string, supportLines: CandlestickData[], resistanceLines: CandlestickData[]): void {
+  renderGraph(data: CandlestickData[], element: string, supportLines: CandlestickData[], resistanceLines: CandlestickData[], entryPoint?: CandlestickData): void {
     const ctx = (document.getElementById(element) as any).getContext('2d');
     ctx.canvas.width = 600;
     ctx.canvas.height = 400;
@@ -141,6 +154,25 @@ export class MarketDataGraphsComponent implements OnInit {
         }]
       })
     )
+
+    // Draw entry point
+    if (entryPoint) {  
+      datasets.push({
+        type: 'line',
+        label: `Entry point`,
+        borderColor: 'green',
+        borderWidth: 2,
+        fill: false,
+        data: [{
+          x: entryPoint.t,
+          y: entryPoint.l,
+        },
+        {
+          x: Date.now(),
+          y: entryPoint.l,
+        }]
+      });
+    }
 
     const chart = new Chart(ctx, {
       type: 'candlestick',
