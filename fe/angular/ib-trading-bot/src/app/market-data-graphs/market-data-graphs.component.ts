@@ -1,3 +1,4 @@
+import { trigger } from '@angular/animations';
 import { Component, OnInit } from '@angular/core';
 import { Subject } from 'rxjs';
 
@@ -24,6 +25,11 @@ export class MarketDataGraphsComponent implements OnInit {
   historicData: CandlestickData[];
   messageArray: CandlestickData[] = [];
   entryPoint: CandlestickData;
+  profitTarget = 0.01;
+  stopLoss = 0.02;
+  openOrder: number;
+  hasPosition: boolean;
+  runningPnl: number;
 
   constructor() { }
 
@@ -72,6 +78,8 @@ export class MarketDataGraphsComponent implements OnInit {
 
         this.entryPoint = this.findEntryPoint(6003, this.messageArray, lines);
 
+        this.paperTrade(6003, this.messageArray);
+
         this.renderGraph(
           this.messageArray
             .filter(candlestick => candlestick.t > 0)
@@ -89,6 +97,40 @@ export class MarketDataGraphsComponent implements OnInit {
     });
 
     return closestSupportLine;
+  }
+
+  paperTrade(reqId: number, messageArray: CandlestickData[]) {
+    if (!reqId || !messageArray) {
+      return;
+    }
+
+    const liveData = messageArray
+      .filter(candlestick => candlestick.t > 0)
+      .filter(candlestick => candlestick.reqId === reqId);
+
+    const lastClose = liveData[liveData.length - 1].c;
+
+    if (this.hasPosition) {
+      this.runningPnl = lastClose - this.openOrder;
+    }
+
+    
+    if (!this.hasPosition && liveData[liveData.length - 1].l <= this.openOrder) {
+      console.log(`Buy order filled at ${this.openOrder}`);
+      this.hasPosition = true;
+      return;
+    }
+
+    // Create new buy order if there isn't any
+    // Update order when entry point is updated
+
+    if (!this.hasPosition && this.entryPoint && (!this.openOrder || this.openOrder !== this.entryPoint.l)) {      
+      console.log(`Creating buy order at ${this.entryPoint.l}`);
+      console.log(`Creating take profit order at ${this.entryPoint.l * (1 + this.profitTarget)}`);
+      console.log(`Creating stop loss order at ${this.entryPoint.l * (1 - this.stopLoss)}`);
+      
+      this.openOrder = this.entryPoint.l;
+    }
   }
 
   startWebSocketClient() {

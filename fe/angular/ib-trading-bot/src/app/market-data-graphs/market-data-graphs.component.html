@@ -1,15 +1,24 @@
-<div>
-  <canvas id="chart3M1D"></canvas>
-</div>
-
-<div>
-  <canvas id="chart1W1H"></canvas>
-</div>
-
-<div>
-  <canvas id="chart1H1m"></canvas>
-</div>
-
-<div>
-  <canvas id="chart5s"></canvas>
-</div>
+<main [class.has-position]="hasPosition">
+  <div id="status">
+    <p>Open order at {{ openOrder || '-' }}</p>
+    <p>Profit target at {{ profitTarget * 100 }}%</p>
+    <p>Stop loss at {{stopLoss * 100}}%</p>
+    <p>Running P&L: {{runningPnl }}</p>
+  </div>
+  
+  <div>
+    <canvas id="chart3M1D"></canvas>
+  </div>
+  
+  <div>
+    <canvas id="chart1W1H"></canvas>
+  </div>
+  
+  <div>
+    <canvas id="chart1H1m"></canvas>
+  </div>
+  
+  <div>
+    <canvas id="chart5s"></canvas>
+  </div>
+</main>

@@ -1,4 +1,17 @@
-:host {
+main {
     display: flex;
     flex-wrap: wrap;
+}
+
+main.has-position {
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+#status {
+    display: flex;
+    width: 100%;
+}
+
+#status p {
+    margin-left: 32px;
 }
