@@ -25,11 +25,13 @@ export class MarketDataGraphsComponent implements OnInit {
   historicData: CandlestickData[];
   messageArray: CandlestickData[] = [];
   entryPoint: CandlestickData;
-  profitTarget = 0.01;
-  stopLoss = 0.02;
+  profitTarget = 0.005;
+  stopLoss = 0.005;
   openOrder: number;
   hasPosition: boolean;
   runningPnl: number;
+  takeProfitOrder: number;
+  stopLossOrder: number;
 
   constructor() { }
 
@@ -83,7 +85,7 @@ export class MarketDataGraphsComponent implements OnInit {
         this.renderGraph(
           this.messageArray
             .filter(candlestick => candlestick.t > 0)
-            .filter(candlestick => candlestick.reqId === 6003), 'chart5s', lines.supportLines, lines.resistanceLines, this.entryPoint);
+            .filter(candlestick => candlestick.reqId === 6003), 'chart5s', lines.supportLines, lines.resistanceLines, this.entryPoint, this.openOrder, this.takeProfitOrder, this.stopLossOrder);
       }
     });
   }
@@ -116,8 +118,14 @@ export class MarketDataGraphsComponent implements OnInit {
 
     
     if (!this.hasPosition && liveData[liveData.length - 1].l <= this.openOrder) {
-      console.log(`Buy order filled at ${this.openOrder}`);
       this.hasPosition = true;
+      this.takeProfitOrder = this.entryPoint.l * (1 + this.profitTarget);
+      this.stopLossOrder = this.entryPoint.l * (1 - this.stopLoss);
+
+      console.log(`Buy order filled at ${this.openOrder}`);
+      console.log(`Creating take profit order at ${this.takeProfitOrder}`);
+      console.log(`Creating stop loss order at ${this.stopLossOrder}`);
+
       return;
     }
 
@@ -126,10 +134,13 @@ export class MarketDataGraphsComponent implements OnInit {
 
     if (!this.hasPosition && this.entryPoint && (!this.openOrder || this.openOrder !== this.entryPoint.l)) {      
       console.log(`Creating buy order at ${this.entryPoint.l}`);
-      console.log(`Creating take profit order at ${this.entryPoint.l * (1 + this.profitTarget)}`);
-      console.log(`Creating stop loss order at ${this.entryPoint.l * (1 - this.stopLoss)}`);
       
       this.openOrder = this.entryPoint.l;
+    }
+
+    // Clear entry point if we're in a position
+    if (this.hasPosition) {
+      this.entryPoint = null;
     }
   }
 
@@ -151,7 +162,7 @@ export class MarketDataGraphsComponent implements OnInit {
     };
   }
 
-  renderGraph(data: CandlestickData[], element: string, supportLines: CandlestickData[], resistanceLines: CandlestickData[], entryPoint?: CandlestickData): void {
+  renderGraph(data: CandlestickData[], element: string, supportLines: CandlestickData[], resistanceLines: CandlestickData[], entryPoint?: CandlestickData, openOrder?: number, takeProfitOrder?: number, stopLossOrder?: number): void {
     const ctx = (document.getElementById(element) as any).getContext('2d');
     ctx.canvas.width = 600;
     ctx.canvas.height = 400;
@@ -198,7 +209,7 @@ export class MarketDataGraphsComponent implements OnInit {
     )
 
     // Draw entry point
-    if (entryPoint) {  
+    if (entryPoint) {
       datasets.push({
         type: 'line',
         label: `Entry point`,
@@ -212,6 +223,63 @@ export class MarketDataGraphsComponent implements OnInit {
         {
           x: Date.now(),
           y: entryPoint.l,
+        }]
+      });
+    }
+
+    // Draw open order
+    if (openOrder) {
+      datasets.push({
+        type: 'line',
+        label: `Entry point`,
+        borderColor: 'green',
+        borderWidth: 2,
+        fill: false,
+        data: [{
+          x: entryPoint.t,
+          y: entryPoint.l,
+        },
+        {
+          x: Date.now(),
+          y: entryPoint.l,
+        }]
+      });
+    }
+
+    // Draw take profit order
+    if (takeProfitOrder) {
+      datasets.push({
+        type: 'line',
+        label: `Take profit order`,
+        borderColor: 'lightgreen',
+        borderWidth: 2,
+        fill: false,
+        data: [{
+          x: entryPoint.t,
+          y: takeProfitOrder,
+        },
+        {
+          x: Date.now(),
+          y: takeProfitOrder,
+        }]
+      });
+    }
+
+    // Draw stop loss order
+    if (stopLossOrder) {
+      datasets.push({
+        type: 'line',
+        label: `Stop Loss order`,
+        borderColor: 'purple',
+        borderWidth: 2,
+        fill: false,
+        data: [{
+          x: entryPoint.t,
+          y: stopLossOrder,
+        },
+        {
+          x: Date.now(),
+          y: stopLossOrder,
         }]
       });
     }
